@@ -1,0 +1,38 @@
+Логи C++:
+
+(2026-05-24 16:34:03) [INFO    ] Crow/master server is running at http://0.0.0.0:18080 using 12 threads
+(2026-05-24 16:34:03) [INFO    ] Call `app.loglevel(crow::LogLevel::Warning)` to hide Info level logs.
+(2026-05-24 16:34:12) [INFO    ] Request: 127.0.0.1:49696 0x183899e2400 HTTP/1.1 GET /account/2
+(2026-05-24 16:34:12) [INFO    ] Response: 0x183899e2400 /account/2 404 0
+(2026-05-24 16:34:22) [INFO    ] Request: 127.0.0.1:49752 0x183899e3840 HTTP/1.1 POST /account
+(2026-05-24 16:34:22) [ERROR   ] An uncaught exception occurred: Ошибка при создании пользователя
+(2026-05-24 16:34:22) [INFO    ] Response: 0x183899e3840 /account 500 0
+
+Логи докер контейнера с PostgreSQL:
+2026-05-24 12:04:36.722 UTC [1] LOG:  starting PostgreSQL 17.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+
+2026-05-24 12:04:36.722 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+
+2026-05-24 12:04:36.722 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+
+2026-05-24 12:04:36.724 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+
+2026-05-24 12:04:36.728 UTC [57] LOG:  database system was shut down at 2026-05-24 12:04:36 UTC
+
+2026-05-24 12:04:36.732 UTC [1] LOG:  database system is ready to accept connections
+
+2026-05-24 12:09:36.815 UTC [55] LOG:  checkpoint starting: time
+
+2026-05-24 12:09:46.351 UTC [55] LOG:  checkpoint complete: wrote 98 buffers (0.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=9.521 s, sync=0.009 s, total=9.537 s; sync files=53, longest=0.002 s, average=0.001 s; distance=432 kB, estimate=432 kB; lsn=0/1981318, redo lsn=0/1981288
+
+2026-05-24 16:34:12.689 UTC [12202] FATAL:  password authentication failed for user "postgres"
+
+2026-05-24 16:34:12.689 UTC [12202] DETAIL:  Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+
+2026-05-24 16:34:22.041 UTC [12211] FATAL:  password authentication failed for user "postgres"
+
+2026-05-24 16:34:22.041 UTC [12211] DETAIL:  Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+
+2026-05-24 16:34:56.192 UTC [12235] FATAL:  password authentication failed for user "postgres"
+
+2026-05-24 16:34:56.192 UTC [12235] DETAIL:  Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"

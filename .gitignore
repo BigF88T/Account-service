@@ -1,0 +1,4 @@
+/cmake-build-debug/
+/external/asio/
+/external/Crow/
+/external/pgsql/
