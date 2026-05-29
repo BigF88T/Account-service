@@ -2,22 +2,25 @@
 #include "account_service_db_impl.h"
 #include <cstdlib>
 #include <string>
+
+#include "configuration.h"
+#include "migration_runner.h"
 #include "crow/app.h"
 
 int main() {
+    const Configuration configuration("resources/application.json");
+
+    const MigrationRunner migration_runner(configuration.GetDbUrl());
+    migration_runner.RunMigration(configuration.GetMigrationsDir());
+
     crow::SimpleApp app;
 
-    const char* env_url = std::getenv("DATABASE_URL");
-    const auto default_db_url = "postgresql://postgres:postgres@localhost:5444/account-service";
+    AccountServiceDbImpl account_service(configuration.GetDbUrl());
 
-    const std::string db_url = (env_url != nullptr) ? env_url : default_db_url;
-
-    AccountServiceDbImpl account_service(db_url);
     AccountController account_controller(account_service);
-
     account_controller.RegisterRoutes(app);
 
-    app.port(18080).multithreaded().run();
+    app.port(configuration.GetPort()).multithreaded().run();
 
     return 0;
 }

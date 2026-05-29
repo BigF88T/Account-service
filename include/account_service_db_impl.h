@@ -23,18 +23,4 @@ public:
 
 private:
     std::string conn_str_;
-
-    struct DbConnection {
-        PGconn* conn;
-        explicit DbConnection(const std::string& str);
-        ~DbConnection();
-    };
-
-    struct ResPtr {
-        PGresult *r;
-        std::string status_str;
-        explicit ResPtr(PGresult* res);
-        ~ResPtr();
-    };
 };
-

@@ -11,6 +11,12 @@ add_executable(web_service
         src/controller/account_controller.cpp
         include/account_service_db_impl.h
         src/service/account_service_db_impl.cpp
+        src/configuration/migration_runner.cpp
+        include/migration_runner.h
+        include/db_util.h
+        src/configuration/configuration.cpp
+        include/configuration.h
+        src/util/db_util.cpp
 )
 
 # Заголовки (Наши + Asio + Crow + PostgreSQL)
@@ -35,3 +41,7 @@ target_link_directories(web_service PRIVATE external/pgsql/lib)
 if (WIN32)
     target_link_libraries(web_service PUBLIC ws2_32 mswsock libpq)
 endif ()
+
+configure_file(resources/application.json resources/application.json COPYONLY)
+
+file(COPY resources/migrations DESTINATION resources)

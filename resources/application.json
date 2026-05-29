@@ -1,0 +1,11 @@
+{
+  "database": {
+    "url": "postgresql://postgres:postgres@localhost:5444/account-service"
+  },
+  "server": {
+    "port": 18080
+  },
+  "migrations": {
+    "dir": "resources/migrations"
+  }
+}

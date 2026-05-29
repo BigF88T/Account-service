@@ -6,38 +6,15 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "db_util.h"
 #include "libpq-fe.h"
-
-AccountServiceDbImpl::DbConnection::DbConnection(const std::string &str) {
-    conn = PQconnectdb(str.c_str());
-    if (PQstatus(conn) != CONNECTION_OK) {
-        if (conn) PQfinish(conn);
-        throw std::runtime_error("Database connection failed");
-    }
-}
-
-AccountServiceDbImpl::DbConnection::~DbConnection() {
-    if (conn) {
-        PQfinish(conn);
-    }
-}
 
 AccountServiceDbImpl::AccountServiceDbImpl(const std::string &conn_str) : conn_str_(conn_str) {
 }
 
-AccountServiceDbImpl::ResPtr::ResPtr(PGresult *res) {
-    r = res;
-    status_str = "Очистка памяти Heap'а от результатов запроса в БД account-service";
-}
-
-AccountServiceDbImpl::ResPtr::~ResPtr() {
-    PQclear(r);
-    std::cout << status_str;
-}
-
 AccountDto AccountServiceDbImpl::CreateAccount(const std::string &username) {
     try {
-        const DbConnection db(conn_str_);
+        const DbUtil::DbConnection db(conn_str_);
 
         const char *param_values[1] = {username.c_str()};
 
@@ -52,7 +29,7 @@ AccountDto AccountServiceDbImpl::CreateAccount(const std::string &username) {
             0 // результат в тексте
         );
 
-        const ResPtr cleaner(res);
+        const DbUtil::ResPtr cleaner(res);
 
         if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
             throw std::runtime_error("Ошибка при создании пользователя");
@@ -72,7 +49,7 @@ AccountDto AccountServiceDbImpl::CreateAccount(const std::string &username) {
 
 std::optional<AccountDto> AccountServiceDbImpl::FindAccount(const int id) {
     try {
-        const DbConnection db(conn_str_);
+        const DbUtil::DbConnection db(conn_str_);
 
         const std::string id_str = std::to_string(id);
         const char *param_values[1] = {id_str.c_str()};
@@ -88,7 +65,7 @@ std::optional<AccountDto> AccountServiceDbImpl::FindAccount(const int id) {
             0 // результат в тексте
         );
 
-        const ResPtr cleaner(res);
+        const DbUtil::ResPtr cleaner(res);
 
         if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
             return std::nullopt;
@@ -107,7 +84,7 @@ std::optional<AccountDto> AccountServiceDbImpl::FindAccount(const int id) {
 
 bool AccountServiceDbImpl::Deposit(const int id, const float amount) {
     try {
-        const DbConnection db(conn_str_);
+        const DbUtil::DbConnection db(conn_str_);
         const std::string id_str = std::to_string(id);
         const std::string amount_str = std::to_string(amount);
         const char *param_values[2] = {id_str.c_str(), amount_str.c_str()};
@@ -123,7 +100,7 @@ bool AccountServiceDbImpl::Deposit(const int id, const float amount) {
             0
         );
 
-        const ResPtr cleaner(res);
+        const DbUtil::ResPtr cleaner(res);
 
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
             return false;
@@ -142,7 +119,7 @@ bool AccountServiceDbImpl::Deposit(const int id, const float amount) {
 
 bool AccountServiceDbImpl::Transfer(const int from_id, const int to_id, const float amount) {
     try {
-        const DbConnection db(conn_str_);
+        const DbUtil::DbConnection db(conn_str_);
 
         PQexec(db.conn, "BEGIN");
 
@@ -161,7 +138,7 @@ bool AccountServiceDbImpl::Transfer(const int from_id, const int to_id, const fl
             0
         );
 
-        const ResPtr cleaner(res_from_transaction);
+        const DbUtil::ResPtr cleaner(res_from_transaction);
 
         if (PQresultStatus(res_from_transaction) != PGRES_COMMAND_OK || std::stoi(PQcmdTuples(res_from_transaction)) == 0) {
             PQexec(db.conn, "ROLLBACK");
@@ -182,7 +159,7 @@ bool AccountServiceDbImpl::Transfer(const int from_id, const int to_id, const fl
             0
         );
 
-        const ResPtr cleaner2(res_to_transaction);
+        const DbUtil::ResPtr cleaner2(res_to_transaction);
 
         if (PQresultStatus(res_to_transaction) != PGRES_COMMAND_OK || std::stoi(PQcmdTuples(res_to_transaction)) == 0) {
             PQexec(db.conn, "ROLLBACK");
