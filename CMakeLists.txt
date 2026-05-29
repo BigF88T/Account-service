@@ -41,7 +41,18 @@ target_link_directories(web_service PRIVATE external/pgsql/lib)
 if (WIN32)
     target_link_libraries(web_service PUBLIC ws2_32 mswsock libpq)
 endif ()
-
+# Описываем нахождение конфигурационного файла и копируем их в build
 configure_file(resources/application.json resources/application.json COPYONLY)
-
+#Копируем миграции в build_command()
 file(COPY resources/migrations DESTINATION resources)
+
+# Это кастомная цель для web_service,
+# чтобы каждый раз при запуске копировать файлы миграций
+add_custom_target(copy_migrations ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/migrations
+        ${CMAKE_BINARY_DIR}/resources/migrations
+        COMMENT "Копируем миграции в директорию build"
+)
+# Добавляем зависимость сервису на кастомную цель "copy_migrations"
+add_dependencies(web_service copy_migrations)
