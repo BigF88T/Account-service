@@ -2,177 +2,104 @@
 // Created by thbr on 24.05.2026.
 //
 #include "account_service_db_impl.h"
-
 #include <iostream>
-#include <stdexcept>
 
+#include "audit_repository.h"
 #include "db_util.h"
 #include "libpq-fe.h"
 
-AccountServiceDbImpl::AccountServiceDbImpl(const std::string &conn_str) : conn_str_(conn_str) {
+AccountServiceDbImpl::AccountServiceDbImpl(
+    const AccountRepository &account_repository,
+    const AuditRepository &audit_repository,
+    const std::string &conn_str
+) : account_repository_(account_repository), audit_repository_(audit_repository), conn_str_(conn_str) {
 }
 
 AccountDto AccountServiceDbImpl::CreateAccount(const std::string &username) {
-    try {
-        const DbUtil::DbConnection db(conn_str_);
+    const DbUtil::DbConnection db(conn_str_);
 
-        const char *param_values[1] = {username.c_str()};
-
-        PGresult *res = PQexecParams(
-            db.conn,
-            "INSERT INTO accounts (owner_name) VALUES ($1) RETURNING id, owner_name, balance",
-            1, // количество переданных параметров
-            nullptr, // тип параметра (если null, то база сама определит)
-            param_values,
-            nullptr, // длины параметров
-            nullptr, // формы (текст)
-            0 // результат в тексте
-        );
-
-        const DbUtil::ResPtr cleaner(res);
-
-        if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
-            throw std::runtime_error("Ошибка при создании пользователя");
-        }
-
-        AccountDto new_account;
-
-        new_account.id = std::stoi(PQgetvalue(res, 0, 0));
-        new_account.owner_name = PQgetvalue(res, 0, 1);
-        new_account.balance = std::stof(PQgetvalue(res, 0, 2));
-
-        return new_account;
-    } catch (...) {
-        throw std::runtime_error("Ошибка при создании пользователя");
-    }
+    return account_repository_.Save(
+        db.conn,
+        username
+    );
 }
 
 std::optional<AccountDto> AccountServiceDbImpl::FindAccount(const int id) {
-    try {
-        const DbUtil::DbConnection db(conn_str_);
+    const DbUtil::DbConnection db(conn_str_);
 
-        const std::string id_str = std::to_string(id);
-        const char *param_values[1] = {id_str.c_str()};
-
-        PGresult *res = PQexecParams(
-            db.conn,
-            "SELECT id, owner_name, balance FROM accounts WHERE id = $1",
-            1, // количество переданных параметров
-            nullptr, // тип параметра (если null, то база сама определит)
-            param_values,
-            nullptr, // длины параметров
-            nullptr, // формы (текст)
-            0 // результат в тексте
-        );
-
-        const DbUtil::ResPtr cleaner(res);
-
-        if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
-            return std::nullopt;
-        }
-
-        AccountDto dto;
-        dto.id = std::stoi(PQgetvalue(res, 0, 0));
-        dto.owner_name = PQgetvalue(res, 0, 1);
-        dto.balance = std::stof(PQgetvalue(res, 0, 2));
-
-        return dto;
-    } catch (...) {
-        return std::nullopt;
-    }
+    return account_repository_.GetAccountById(
+        db.conn,
+        id
+    );
 }
 
-bool AccountServiceDbImpl::Deposit(const int id, const float amount) {
-    try {
-        const DbUtil::DbConnection db(conn_str_);
-        const std::string id_str = std::to_string(id);
-        const std::string amount_str = std::to_string(amount);
-        const char *param_values[2] = {id_str.c_str(), amount_str.c_str()};
+bool AccountServiceDbImpl::Deposit(
+    const int id,
+    const float amount
+) {
+    const DbUtil::DbConnection db(conn_str_);
 
-        PGresult *res = PQexecParams(
-            db.conn,
-            "UPDATE accounts SET balance = balance + $2 WHERE id = $1",
-            2,
-            nullptr,
-            param_values,
-            nullptr,
-            nullptr,
-            0
+    return account_repository_.DepositById(
+        db.conn,
+        id,
+        amount
+    );
+}
+
+bool AccountServiceDbImpl::Transfer(
+    const int from_id,
+    const int to_id,
+    const float amount
+) {
+    const DbUtil::DbConnection db(conn_str_);
+
+    try {
+        DbUtil::ResPtr guard_bigun(
+            PQexec(
+                db.conn,
+                "BEGIN"
+            )
         );
 
-        const DbUtil::ResPtr cleaner(res);
+        const bool isSuccess = account_repository_.TransferByIds(
+            db.conn,
+            from_id,
+            to_id,
+            amount
+        );
 
-        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        if (!isSuccess) {
+            DbUtil::ResPtr guard_rollback(
+                PQexec(
+                    db.conn,
+                    "ROLLBACK"
+                )
+            );
             return false;
         }
 
-        //Проверка на наличие строки в БД
-        if (std::stoi(PQcmdTuples(res)) == 0) {
-            return false;
-        }
+        audit_repository_.Save(
+            db.conn,
+            from_id,
+            to_id,
+            amount
+        );
+
+        DbUtil::ResPtr guard_commit(
+            PQexec(
+                db.conn,
+                "COMMIT"
+            )
+        );
 
         return true;
     } catch (...) {
+        DbUtil::ResPtr guard_rollback(
+            PQexec(
+                db.conn,
+                "ROLLBACK"
+            )
+        );
         return false;
     }
-}
-
-bool AccountServiceDbImpl::Transfer(const int from_id, const int to_id, const float amount) {
-    try {
-        const DbUtil::DbConnection db(conn_str_);
-
-        PQexec(db.conn, "BEGIN");
-
-        const std::string from_id_str = std::to_string(from_id);
-        const std::string amount_str = std::to_string(amount);
-        const char *param_from[2] = {from_id_str.c_str(), amount_str.c_str()};
-
-        PGresult *res_from_transaction = PQexecParams(
-            db.conn,
-            "UPDATE accounts SET balance = balance - $2 WHERE id = $1 AND balance >= $2",
-            2,
-            nullptr,
-            param_from,
-            nullptr,
-            nullptr,
-            0
-        );
-
-        const DbUtil::ResPtr cleaner(res_from_transaction);
-
-        if (PQresultStatus(res_from_transaction) != PGRES_COMMAND_OK || std::stoi(PQcmdTuples(res_from_transaction)) == 0) {
-            PQexec(db.conn, "ROLLBACK");
-            return false;
-        }
-
-        const std::string to_id_str = std::to_string(to_id);
-        const char* param_to[2] = {to_id_str.c_str(), amount_str.c_str()};
-
-        PGresult *res_to_transaction = PQexecParams(
-            db.conn,
-            "UPDATE accounts SET balance = balance + $2 WHERE id = $1",
-            2,
-            nullptr,
-            param_to,
-            nullptr,
-            nullptr,
-            0
-        );
-
-        const DbUtil::ResPtr cleaner2(res_to_transaction);
-
-        if (PQresultStatus(res_to_transaction) != PGRES_COMMAND_OK || std::stoi(PQcmdTuples(res_to_transaction)) == 0) {
-            PQexec(db.conn, "ROLLBACK");
-
-            return false;
-        }
-
-        PQexec(db.conn, "COMMIT");
-
-        return true;
-    } catch (...) {
-        return false;
-    }
-
-
 }

@@ -2,7 +2,7 @@
 // Created by thbr on 29.05.2026.
 //
 
-#include "../../include/db_util.h"
+#include "db_util.h"
 
 #include <stdexcept>
 

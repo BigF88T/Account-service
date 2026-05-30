@@ -4,15 +4,21 @@
 
 #pragma once
 
-#include "Crow.h"
 #include "account_service.h"
+#include <Crow.h>
+#include "transaction_facade.h"
 
 class AccountController {
 public:
-    explicit AccountController(AccountService& account_service) : account_service_(account_service) {}
+    explicit AccountController(
+        TransactionFacade &transaction_facade,
+        AccountService &account_service
+    ) : transaction_facade_(transaction_facade), account_service_(account_service) {
+    }
 
-    void RegisterRoutes(crow::SimpleApp& app);
+    void RegisterRoutes(crow::SimpleApp &app) const;
 
 private:
-    AccountService& account_service_;
+    TransactionFacade &transaction_facade_;
+    AccountService &account_service_;
 };

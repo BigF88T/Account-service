@@ -1,8 +1,8 @@
 #include "account_controller.h"
 #include "account_service_db_impl.h"
-#include <cstdlib>
 #include <string>
 
+#include "audit_repository.h"
 #include "configuration.h"
 #include "migration_runner.h"
 #include "crow/app.h"
@@ -15,9 +15,19 @@ int main() {
 
     crow::SimpleApp app;
 
-    AccountServiceDbImpl account_service(configuration.GetDbUrl());
+    constexpr AccountRepository account_repository;
+    constexpr AuditRepository audit_repository;
+    AccountServiceDbImpl account_service(
+        account_repository,
+        audit_repository,
+        configuration.GetDbUrl()
+    );
+    TransactionFacade transaction_facade(account_service);
 
-    AccountController account_controller(account_service);
+    const AccountController account_controller(
+        transaction_facade,
+        account_service
+    );
     account_controller.RegisterRoutes(app);
 
     app.port(configuration.GetPort()).multithreaded().run();

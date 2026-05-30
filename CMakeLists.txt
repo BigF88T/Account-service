@@ -17,6 +17,14 @@ add_executable(web_service
         src/configuration/configuration.cpp
         include/configuration.h
         src/util/db_util.cpp
+        src/repository/audit_repository.cpp
+        include/audit_repository.h
+        src/facade/transaction_facade.cpp
+        include/transaction_facade.h
+        src/repository/account_repository.cpp
+        include/account_repository.h
+        src/util/mapper/account_mapper.cpp
+        include/account_mapper.h
 )
 
 # Заголовки (Наши + Asio + Crow + PostgreSQL)
