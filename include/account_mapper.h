@@ -9,6 +9,7 @@ public:
     static AccountDto toDto(
         int id,
         const std::string &owner_name,
-        float balance
+        float balance,
+        bool is_blocked
     );
 };

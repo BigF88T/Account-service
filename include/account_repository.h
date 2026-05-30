@@ -14,6 +14,8 @@ public:
         int id
     );
 
+    static AccountDto MapToDto(const PGresult *res);
+
     AccountDto Save(
         PGconn *db_conn,
         const std::string &username
@@ -30,5 +32,10 @@ public:
         int from_id,
         int to_id,
         float amount
+    );
+
+    bool IsBlockedById(
+        PGconn *db_conn,
+        int id
     );
 };

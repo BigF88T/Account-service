@@ -7,11 +7,13 @@
 AccountDto AccountMapper::toDto(
     const int id,
     const std::string &owner_name,
-    const float balance
+    const float balance,
+    const bool is_blocked
 ) {
     return AccountDto(
         id,
         owner_name,
-        balance
+        balance,
+        is_blocked
     );
 }

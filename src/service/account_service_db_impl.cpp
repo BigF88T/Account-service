@@ -51,15 +51,24 @@ bool AccountServiceDbImpl::Transfer(
     const int to_id,
     const float amount
 ) {
-    const DbUtil::DbConnection db(conn_str_);
-
     try {
-        DbUtil::ResPtr guard_bigun(
+        const DbUtil::DbConnection db(conn_str_);
+        DbUtil::ResPtr guard_begin(
             PQexec(
                 db.conn,
                 "BEGIN"
             )
         );
+
+        if (account_repository_.IsBlockedById(db.conn, from_id) || account_repository_.IsBlockedById(db.conn, to_id)) {
+            DbUtil::ResPtr guard_rollback(
+                PQexec(
+                    db.conn,
+                    "ROLLBACK"
+                )
+            );
+            return false;
+        }
 
         const bool isSuccess = account_repository_.TransferByIds(
             db.conn,
@@ -94,12 +103,15 @@ bool AccountServiceDbImpl::Transfer(
 
         return true;
     } catch (...) {
-        DbUtil::ResPtr guard_rollback(
-            PQexec(
-                db.conn,
-                "ROLLBACK"
-            )
-        );
         return false;
     }
+}
+
+bool AccountServiceDbImpl::IsBlocked(const int id) {
+    const DbUtil::DbConnection db(conn_str_);
+
+    return account_repository_.IsBlockedById(
+        db.conn,
+        id
+    );
 }

@@ -32,6 +32,10 @@ public:
         float amount
     ) override;
 
+    bool IsBlocked(
+        int id
+    ) override;
+
 private:
     AccountRepository account_repository_;
     AuditRepository audit_repository_;

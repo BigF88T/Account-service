@@ -12,7 +12,16 @@ public:
 
     virtual std::optional<AccountDto> FindAccount(int id) = 0;
 
-    virtual bool Deposit(int id, float amount) = 0;
+    virtual bool Deposit(
+        int id,
+        float amount
+    ) = 0;
 
-    virtual bool Transfer(int from_id, int to_id, float amount) = 0;
+    virtual bool Transfer(
+        int from_id,
+        int to_id,
+        float amount
+    ) = 0;
+
+    virtual bool IsBlocked(int id) = 0;
 };

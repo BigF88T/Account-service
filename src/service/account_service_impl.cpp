@@ -3,7 +3,6 @@
 //
 
 #include "account_service_impl.h"
-
 #include "account_service_db_impl.h"
 
 AccountDto AccountServiceImpl::CreateAccount(const std::string &username) {
@@ -45,7 +44,7 @@ bool AccountServiceImpl::Transfer(const int from_id, const int to_id, const floa
     auto& from_account = pair_from->second;
     auto& to_account = pair_to->second;
 
-    if (from_account.balance - amount >= amount) {
+    if (from_account.balance >= amount) {
         from_account.balance -= amount;
         to_account.balance += amount;
 
